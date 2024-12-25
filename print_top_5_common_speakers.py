@@ -4,15 +4,15 @@ import os
 import re
 
 # Define the path to the file located in the same directory as the script
-file_path = os.path.join(os.path.dirname(__file__), "result_orig.jsonl")
+file_path = os.path.join(os.path.dirname(__file__), "result.jsonl")
 
-# Updated predefined pairs of shortened and lengthened names
+# Updated predefined pairs of shortened (nicknames) and lengthened (full) names
 nickname_map = {
     "בני": "בנימין",
     "יוסי": "יוסף",
-    "אבי": "א'",
-    "א'": "א'",          # Self-map for "א'"
-    "אברהם": "א'",
+    "אבי": "אברהם",
+    "א'": "אברהם",          # Map "א'" to "אברהם"
+    "אברהם": "אברהם",      # Ensure full name maps to itself
     "צחי": "יצחק",
     "איציק": "יצחק",
     "שמוליק": "שמואל",
@@ -29,10 +29,9 @@ nickname_map = {
     "רחלי": "רחל",
     "אתי": "אסתר",
     "רובי": "ראובן",
+    "ר'": "ראובן",          # Map "ר'" to "ראובן"
+    "ראובן": "ראובן",        # Ensure full name maps to itself
 }
-
-# Note: Removed the reverse mapping to prevent conflicting normalization
-# The mapping now exclusively maps any variant to the preferred nickname
 
 # Titles and departments to remove from names
 titles = [
@@ -59,6 +58,9 @@ def normalize_full_name(full_name):
     # Remove any titles or departments from the name
     cleaned_name = bad_words_pattern.sub("", full_name).strip()
 
+    # Remove any extra spaces that might have been left after removal
+    cleaned_name = re.sub(r'\s+', ' ', cleaned_name)
+
     parts = cleaned_name.split(" ", 1)
     if len(parts) == 2:
         first_name, last_name = parts
@@ -66,12 +68,9 @@ def normalize_full_name(full_name):
         # Normalize first name if it's in the nickname map
         if first_name in nickname_map:
             first_name = nickname_map[first_name]
-        elif re.match(r"^[א-ת]'", first_name):  # Single-letter first name
-            # Attempt to map if possible
-            if first_name in nickname_map:
-                first_name = nickname_map[first_name]
-            else:
-                # If no mapping exists, remove the first name
+        else:
+            # If first name is a single-letter initial without a mapping, remove it
+            if re.match(r"^[א-ת]'", first_name):
                 return last_name
 
         return f"{first_name} {last_name}"
@@ -118,13 +117,4 @@ top_speakers = sorted(unique_speaker_counter.items(), key=lambda x: x[1], revers
 print("5 speakers with most sentences:")
 for normalized_name, count in top_speakers:
     variations = variation_to_normalized[normalized_name]
-    if "בורג" in normalized_name:
-        # Prefer displaying "א' בורג" if present in variations
-        preferred_variation = next((var for var in variations if var.startswith("א'")), None)
-        if preferred_variation:
-            print(f"{preferred_variation}: {count}")
-        else:
-            # If "א' בורג" doesn't exist, display any variation
-            print(f"{next(iter(variations))}: {count}")
-    else:
-        print(f"{normalized_name}: {count}")
+    print(f"{normalized_name}: {count}")
