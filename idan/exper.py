@@ -50,3 +50,6 @@ except FileNotFoundError:
 print("Names with Forbidden Words and Reasons:")
 for name, reasons in forbidden_names.items():
     print(f"{name}: Forbidden because it contains {', '.join(reasons)}")
+
+
+
